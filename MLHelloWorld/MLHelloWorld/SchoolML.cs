@@ -25,9 +25,9 @@ namespace MLHelloWorld
     /// </summary>
     public class SchoolML
     {
-        const string DataPath = @".\Data\school-train.csv";//训练数据
-        const string TestDataPath = @".\Data\school-test.csv";//测试数据
-        const string ModelPath = @".\Models\school_predic_Model_student.zip";//模型地址,
+        const string DataPath = @".\Data\buildingArea_School-train.csv";//训练数据
+        const string TestDataPath = @".\Data\buildingArea_School-test.csv";//测试数据
+        const string ModelPath = @".\Models\school_predic_Model_buildingArea_ClasCount.zip";//模型地址,
         const string ModelDirectory = @".\Models";//模型目录
         
         public class School
@@ -59,7 +59,12 @@ namespace MLHelloWorld
             /// </summary>
             [Column(ordinal: "4")]
             public float student;
- 
+            /// <summary>
+            /// 建筑面积
+            /// </summary>
+            [Column(ordinal: "5")]
+            public float buildingArea;
+
         }
         /// <summary>
         ///预测类
@@ -67,7 +72,7 @@ namespace MLHelloWorld
         public class SchoolStudentPrediction
         {
             [ColumnName("Score")]
-            public float student;
+            public float classCount;
            
         }
 
@@ -84,8 +89,8 @@ namespace MLHelloWorld
             var textLoader = new TextLoader<School>(DataPath, useHeader: true, separator: ",");
             pipeline.Add(textLoader);
             //使用该ColumnCopier()功能将“票价_帐户”列复制到名为“标签”的新列中。此列是标签。
-             pipeline.Add(new ColumnCopier(("student", "Label")));
-             pipeline.Add(new ColumnDropper() { Column = new[] { "cityGuid" } });
+             pipeline.Add(new ColumnCopier(("classCount", "Label")));
+            
             //进行一些特征工程来转换数据，以便它可以有效地用于机器学习。该训练模型需要算法的数字功能，
             //您变换中的分类数据（vendor_id，rate_code，和payment_type）为数字。
             //该CategoricalOneHotVectorizer()
@@ -95,8 +100,8 @@ namespace MLHelloWorld
             //有助于算法轻松处理您的功能。按照您在最后一步中编写的内容添加以下代码：
             //请注意，“trip_time_in_secs”列不包括在内。你已经确定它不是一个有用的预测功能。
             pipeline.Add(new ColumnConcatenator("Features",
-                                     "typeNameIndex",
-                                      "cityGuid"
+                                     "typeNameIndex", "cityGuid",
+                                      "buildingArea"
                                      ));
             //在将数据添加到流水线并将其转换为正确的输入格式之后，您可以选择一种学习算法（学习者）。学习算
             //法训练模型。你为这个问题选择了一个回归任务，所以你增加了一个学习者调用FastTreeRegressor()到
@@ -137,10 +142,11 @@ namespace MLHelloWorld
             internal static readonly School Trip1 = new School
             {
                 typeNameIndex = 1,
-                classCount =0 ,//58
+                classCount =49 ,//12
                 teacher = 0,//203
                 student = 0,//
-                cityGuid= "SH-09B18548-7FE1-4853-82B7-274010BBEA76"
+                cityGuid= "2d6e1617-78a6-459b-8ddf-d3a427a3a70f",
+                buildingArea = 53489
 
             };
         }
@@ -149,7 +155,7 @@ namespace MLHelloWorld
             PredictionModel<School, SchoolStudentPrediction> model= null;
            // if (!File.Exists(ModelPath))
             {
-              //  model = await PredictionModel.ReadAsync<School, SchoolStudentPrediction>(ModelPath);
+               // model = await PredictionModel.ReadAsync<School, SchoolStudentPrediction>(ModelPath);
                 //await在你的Main方法中添加一个方法意味着该Main方法必须具有async修饰符并返回a Task：
                 //using System.Threading.Tasks;
                 //评估模型
@@ -162,15 +168,15 @@ namespace MLHelloWorld
             }
             Evaluate(model);
             var prediction1 = model.Predict(TestTrips.Trip1);
-            Console.WriteLine($"classCount:{TestTrips.Trip1.classCount}teacher:{TestTrips.Trip1.teacher} Predicted fare: {(int)prediction1.student}  fare: {TestTrips.Trip1.student}");
+            Console.WriteLine($"classCount:{TestTrips.Trip1.classCount}teacher:{TestTrips.Trip1.teacher}buildingArea:{TestTrips.Trip1.buildingArea} Predicted fare: {(int)prediction1.classCount}  fare: {TestTrips.Trip1.classCount}");
             Console.WriteLine("确认模型后按回车开始");
             Console.ReadKey();
 
             var conStr = GetConnectionStr("192.168.1.121", "SimpleCrawler");
             var dataop = new MongoRepositoryHelperA3(conStr);
            // var query = Query.And(Query.Exists("student", true), Query.Exists("teacher", true), Query.Exists("classCount", false));
-            var query = Query.And( Query.EQ("totalArea",true),Query.Or(Query.Exists("teacher", false), Query.Exists("student", false), Query.Exists("classCount", false)));
-            var allSchoolList = dataop.FindByQuery("go007_School", query).SetFields("student","teacher", "typeNameIndex", "classCount", "cityGuid", "predicColumns").ToList();
+            var query = Query.And( Query.Exists("buildingArea",true), Query.NE("buildingArea", 0),   Query.Exists("classCount", false));
+            var allSchoolList = dataop.FindByQuery("go007_School", query).SetFields("student","teacher", "typeNameIndex", "classCount", "cityGuid", "predicColumns", "predicColumns", "buildingArea").ToList();
 
             foreach (var school in allSchoolList)
             {
@@ -190,15 +196,15 @@ namespace MLHelloWorld
                 };
                 var prediction = model.Predict(Trip1);
                 var doc = new BsonDocument();
-                if (prediction.student != 0)
+                if (prediction.classCount != 0)
                 {
                     //基于字段
-                    if (!predicColumns.Contains("typeNameIndex"))
+                    if (!predicBaseColumns.Contains("typeNameIndex"))
                     {
                         predicBaseColumns.Add("typeNameIndex");
                     }
                     //基于字段
-                    if (!predicColumns.Contains("student"))
+                    if (!predicBaseColumns.Contains("student"))
                     {
                         predicBaseColumns.Add("student");
                     }
@@ -207,14 +213,14 @@ namespace MLHelloWorld
                     {
                         predicColumns.Add("classCount");
                     }
-                    doc.Add("teacher", (int)prediction.student);
+                    doc.Add("classCount", (int)prediction.classCount);
                     doc.Add("isPredic", 1);//是否预测字段
                     doc.Add("predicColumns", predicColumns);
                     doc.Add("predicBaseColumns", predicBaseColumns);
                     DBChangeQueue.Instance.EnQueue(new StorageData() { Name = "go007_School", Document = doc, Query = Query.EQ("_id", ObjectId.Parse(school.Text("_id"))), Type = StorageType.Update });
                 }
                 
-                Console.WriteLine($"student:{Trip1.student}teacher:{Trip1.teacher} classCount:{Trip1.classCount} Predicted fare: {(int)prediction.student}");
+                Console.WriteLine($"student:{Trip1.student}teacher:{Trip1.teacher} classCount:{Trip1.classCount} Predicted fare: {(int)prediction.classCount}");
 
             }
           StartDBChangeProcessQuick(dataop);
