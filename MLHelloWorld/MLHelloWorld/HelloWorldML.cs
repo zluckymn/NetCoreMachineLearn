@@ -6,6 +6,8 @@ using Microsoft.ML.Runtime.Api;
 using Microsoft.ML.Trainers;
 using Microsoft.ML.Transforms;
 using System;
+using Microsoft.ML.Data;
+
 namespace MLHelloWorld
 {
    public class HelloWorldML
@@ -18,7 +20,7 @@ namespace MLHelloWorld
             // If working in Visual Studio, make sure the 'Copy to Output Directory' 
             // property of iris-data.txt is set to 'Copy always'
             string dataPath = "iris-data.txt";
-            pipeline.Add(new TextLoader<IrisData>(dataPath, separator: ","));
+            pipeline.Add(new TextLoader(dataPath).CreateFrom<IrisData>(separator: ','));
 
             // STEP 3: Transform your data
             // Assign numeric values to text in the "Label" column, because only

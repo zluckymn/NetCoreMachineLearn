@@ -65,7 +65,7 @@ namespace MZ.Extension
         {
             return String(bsonDoc, name);
         }
-        
+      
         /// <summary>
         ///  获取文本值
         /// </summary>
@@ -156,7 +156,38 @@ namespace MZ.Extension
 
             return defaultValue;
         }
+        /// <summary>
+        /// 获取整形值
+        /// </summary>
+        /// <param name="bsonDoc"></param>
+        /// <param name="name"></param>
+        /// <param name="defaultValue"></param>
+        /// <returns></returns>
+        public static float Float(this BsonDocument bsonDoc, string name)
+        {
+            return Float(bsonDoc, name, 0);
+        }
+        /// <summary>
+        /// 获取整形值
+        /// </summary>
+        /// <param name="bsonDoc"></param>
+        /// <param name="name"></param>
+        /// <param name="defaultValue"></param>
+        /// <returns></returns>
+        public static float Float(this BsonDocument bsonDoc, string name, float defaultValue)
+        {
+            if (bsonDoc != null && bsonDoc.Contains(name))
+            {
+                float temp = new float();
 
+                if (float.TryParse(bsonDoc.GetValue(name).ToString(), out temp))
+                {
+                    return temp;
+                }
+            }
+
+            return defaultValue;
+        }
         /// <summary>
         /// 货币的格式展示
         /// </summary>

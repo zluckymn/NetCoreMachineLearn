@@ -9,6 +9,7 @@ using System;
 using System.Threading.Tasks;
 using System.IO;
 using Microsoft.ML.Models;
+using Microsoft.ML.Data;
 
 namespace MLHelloWorld
 {
@@ -75,8 +76,11 @@ namespace MLHelloWorld
         {
             //创建学习管道
             var pipeline = new LearningPipeline();
+            
             //加载和转换您的数据
-            pipeline.Add(new TextLoader<TaxiTrip>(DataPath, useHeader: true, separator: ","));
+            pipeline.Add(new TextLoader(DataPath).CreateFrom<TaxiTrip>(useHeader: true, separator: ','));
+
+            
             //使用该ColumnCopier()功能将“票价_帐户”列复制到名为“标签”的新列中。此列是标签。
             pipeline.Add(new ColumnCopier(("fare_amount", "Label")));
             //进行一些特征工程来转换数据，以便它可以有效地用于机器学习。该训练模型需要算法的数字功能，
@@ -119,7 +123,7 @@ namespace MLHelloWorld
         /// <param name="model"></param>
         public static void Evaluate(PredictionModel<TaxiTrip, TaxiTripFarePrediction> model)
         {
-            var testData = new TextLoader<TaxiTrip>(TestDataPath, useHeader: true, separator: ",");
+            var testData = new TextLoader(TestDataPath).CreateFrom<TaxiTrip>( useHeader: true, separator: ',');
             var evaluator = new RegressionEvaluator();
             RegressionMetrics metrics = evaluator.Evaluate(model, testData);
             // Rms should be around 2.795276

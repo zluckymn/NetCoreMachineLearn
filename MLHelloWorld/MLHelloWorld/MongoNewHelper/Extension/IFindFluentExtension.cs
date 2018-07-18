@@ -6,7 +6,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Bson.IO;
 using System.Linq.Expressions;
-
+using MZ.Extension;
 ///<summary>
 ///MongoDB基础及其重载
 ///</summary>
