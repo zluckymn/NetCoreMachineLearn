@@ -363,7 +363,7 @@ namespace MLHelloWorld
             // var query = Query.And(Query.Exists("student", true), Query.Exists("teacher", true), Query.Exists("classCount", false));
              
             var allJiaMiTuList = dataop.FindByQuery(tableNameEgg, Query.And(Query.Exists("pIds",true),Query.NE("isPredic", 1),Query.NE("isPass",1))).ToList();
-
+            var ExecNum = Guid.NewGuid().ToString();
             var index = 1;
             foreach (var JiaMiTu in allJiaMiTuList)
             {
@@ -374,7 +374,8 @@ namespace MLHelloWorld
                 var fatherDoc = dataop.FindOne(tableName, Query.EQ("id", pIds[0].ToString()));
                 var motherDoc = dataop.FindOne(tableName, Query.EQ("id", pIds[1].ToString()));
                 if (fatherDoc == null || motherDoc == null) continue;
-
+                var doc = new BsonDocument();
+                doc.Set("ExecNum", ExecNum);
                 //父亲
                 var fatherMiTu = InitialJiaMiTu(fatherDoc);
                 //母亲
@@ -382,12 +383,12 @@ namespace MLHelloWorld
                 //当前加密兔
                 var Trip1 = InitialJiaMiTu(JiaMiTu);//赋值字段
                 Trip1 = InitialJiaMiTuPoint(Trip1, fatherMiTu, motherMiTu);//计算得分
-                if (motherMiTu.RareDegree >= (int)RareDegree.epic && fatherMiTu.RareDegree <= (int)RareDegree.rare || fatherMiTu.RareDegree >= (int)RareDegree.epic && motherMiTu.RareDegree <= (int)RareDegree.rare)
+                if (motherMiTu.RareDegree >= (int)RareDegree.rare && fatherMiTu.RareDegree <= (int)RareDegree.rare || fatherMiTu.RareDegree >= (int)RareDegree.rare && motherMiTu.RareDegree <= (int)RareDegree.rare)
                 {
 
 
                     var prediction = model.Predict(Trip1);
-                    var doc = new BsonDocument();
+                  
                     if (prediction.RareDegree != 0)
                     {
                         string txt = EnumDescription.GetFieldText((RareDegree)prediction.RareDegree);
@@ -409,7 +410,7 @@ namespace MLHelloWorld
                 }
                 else
                 {
-                    var doc = new BsonDocument();
+                   
                     doc.Add("isPass", 1);//是否预测字段
                     DBChangeQueue.Instance.EnQueue(new StorageData() { Name = tableNameEgg, Document = doc, Query = Query.EQ("_id", ObjectId.Parse(JiaMiTu.Text("_id"))), Type = StorageType.Update });
                 }
@@ -417,7 +418,7 @@ namespace MLHelloWorld
                 if (index % 100 == 0)
                 {
                    
-                    Console.WriteLine("剩余处理{0}", allJiaMiTuList.Count-index);
+                    Console.WriteLine("剩余处理{0}{1}", allJiaMiTuList.Count-index, ExecNum);
                 }
             }
             StartDBChangeProcessQuick(dataop);
