@@ -422,7 +422,7 @@ namespace MLHelloWorld
                 }
             }
             StartDBChangeProcessQuick(dataop);
-            Console.WriteLine("操作结束");
+            Console.WriteLine("操作结束"+ ExecNum);
 
 
         }
